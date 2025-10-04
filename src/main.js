@@ -106,22 +106,63 @@ function createWindow() {
     show: false
   });
 
-  // 处理权限请求 - 这是关键！
-  mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
-    console.log('Permission request:', permission);
-    if (permission === 'serial') {
-      // 自动允许串口权限
-      callback(true);
+  // 关键：处理串口选择事件 - 这是Electron中Web Serial API工作的核心！
+  mainWindow.webContents.session.on('select-serial-port', (event, portList, webContents, callback) => {
+    console.log('🔌 串口选择请求 - 可用端口:', portList.length);
+    
+    // 打印端口详细信息
+    portList.forEach((port, index) => {
+      console.log(`  端口 ${index + 1}: ${port.displayName || port.portName} (ID: ${port.portId})`);
+    });
+    
+    // 阻止默认行为（防止崩溃）
+    event.preventDefault();
+    
+    // 如果有可用端口，自动选择第一个ESP32相关的端口，或者第一个可用端口
+    if (portList && portList.length > 0) {
+      // 尝试找ESP32相关的端口
+      let selectedPort = portList.find(port => {
+        const name = (port.displayName || port.portName || '').toLowerCase();
+        return name.includes('esp32') || name.includes('silicon labs') || name.includes('cp210');
+      });
+      
+      // 如果没找到ESP32端口，选择第一个
+      if (!selectedPort) {
+        selectedPort = portList[0];
+      }
+      
+      console.log('✅ 自动选择端口:', selectedPort.displayName || selectedPort.portName);
+      callback(selectedPort.portId);
     } else {
-      callback(false);
+      console.log('❌ 没有找到可用的串口');
+      callback(''); // 空字符串表示取消选择
     }
+  });
+
+  // 处理串口添加事件
+  mainWindow.webContents.session.on('serial-port-added', (event, port) => {
+    console.log('🔌➕ 串口已连接:', port.displayName || port.portName);
+  });
+
+  // 处理串口移除事件
+  mainWindow.webContents.session.on('serial-port-removed', (event, port) => {
+    console.log('🔌➖ 串口已断开:', port.displayName || port.portName);
   });
 
   // 处理权限检查
   mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
-    console.log('Permission check:', permission, requestingOrigin);
-    if (permission === 'serial') {
-      return true;
+    console.log('🔐 权限检查:', permission, 'from', requestingOrigin);
+    if (permission === 'serial' && details.securityOrigin === 'http://localhost:51097') {
+      return true; // 允许来自本地服务器的串口访问
+    }
+    return false;
+  });
+
+  // 设备权限处理器（用于持久化权限）
+  mainWindow.webContents.session.setDevicePermissionHandler((details) => {
+    console.log('🔐 设备权限处理:', details.deviceType, 'from', details.origin);
+    if (details.deviceType === 'serial' && details.origin === 'http://localhost:51097') {
+      return true; // 自动允许串口设备访问
     }
     return false;
   });
