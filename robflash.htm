@@ -392,7 +392,23 @@
                     this.log('正在连接设备...', 'info');
                     
                     if (!navigator.serial) {
-                        throw new Error('浏览器不支持 Web Serial API，请使用 Chrome/Edge 浏览器');
+                        const isSecureContext = window.isSecureContext;
+                        const protocol = window.location.protocol;
+                        const hostname = window.location.hostname;
+                        
+                        let errorMsg = '浏览器不支持 Web Serial API。';
+                        
+                        if (!isSecureContext) {
+                            errorMsg += `\n原因：当前不是安全上下文 (${protocol}//${hostname})`;
+                            errorMsg += '\n解决方案：';
+                            errorMsg += '\n1. 使用 https:// 协议访问';
+                            errorMsg += '\n2. 或在本地使用 http://localhost 访问';
+                            errorMsg += '\n3. 或使用 Chrome 的 --unsafely-treat-insecure-origin-as-secure 参数';
+                        } else {
+                            errorMsg += '\n请使用 Chrome 89+ 或 Edge 89+ 浏览器';
+                        }
+                        
+                        throw new Error(errorMsg);
                     }
 
                     this.port = await navigator.serial.requestPort();
