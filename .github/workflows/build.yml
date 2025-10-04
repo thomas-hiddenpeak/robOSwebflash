@@ -53,13 +53,33 @@ jobs:
     - name: Download all artifacts
       uses: actions/download-artifact@v4
       
+    - name: Organize release files
+      run: |
+        mkdir -p release
+        # Windows files
+        if [ -d "electron-app-windows-latest" ]; then
+          find electron-app-windows-latest -name "*.exe" -o -name "*.nsis" -o -name "*.msi" | while read file; do
+            cp "$file" "release/$(basename "$file")"
+          done
+        fi
+        # macOS files  
+        if [ -d "electron-app-macos-latest" ]; then
+          find electron-app-macos-latest -name "*.dmg" | while read file; do
+            cp "$file" "release/$(basename "$file")"
+          done
+        fi
+        # Linux files
+        if [ -d "electron-app-ubuntu-latest" ]; then
+          find electron-app-ubuntu-latest -name "*.AppImage" -o -name "*.deb" | while read file; do
+            cp "$file" "release/$(basename "$file")"
+          done
+        fi
+        ls -la release/
+      
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          electron-app-windows-latest/**/*
-          electron-app-macos-latest/**/*
-          electron-app-ubuntu-latest/**/*
+        files: release/*
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
