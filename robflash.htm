@@ -369,8 +369,9 @@
                 </div>
 
                 <!-- 所有按钮放在进度条下面成一行 -->
-                <div style="margin-top: 15px; display: flex; gap: 10px;">
-                    <button id="connectBtn" class="btn btn-primary">🔌 连接设备</button>
+                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button id="connectBtn" class="btn btn-primary">🔌 自动连接</button>
+                    <button id="manualConnectBtn" class="btn" style="background: #6c757d; color: white;">🔍 手动选择</button>
                     <button id="flashBtn" class="btn btn-primary" disabled>🔥 烧录固件</button>
                     <button id="eraseBtn" class="btn btn-danger" disabled>🗑️ 擦除Flash</button>
                 </div>
@@ -399,6 +400,7 @@
 
             initializeElements() {
                 this.connectBtn = document.getElementById('connectBtn');
+                this.manualConnectBtn = document.getElementById('manualConnectBtn');
                 this.deviceInfo = document.getElementById('deviceInfo');
                 
                 this.firmwareStatus = document.getElementById('firmwareStatus');
@@ -430,6 +432,7 @@
 
             attachEventListeners() {
                 this.connectBtn.addEventListener('click', () => this.toggleConnection());
+                this.manualConnectBtn.addEventListener('click', () => this.manualConnect());
                 this.flashBtn.addEventListener('click', () => this.flashFirmware());
                 this.eraseBtn.addEventListener('click', () => this.eraseFlash());
                 
@@ -452,6 +455,15 @@
             }
 
             async toggleConnection() {
+                if (this.connected) {
+                    await this.disconnectDevice();
+                } else {
+                    await this.autoDetectAndConnect();
+                }
+            }
+
+            // 手动连接 - 显示端口选择界面
+            async manualConnect() {
                 if (this.connected) {
                     await this.disconnectDevice();
                 } else {
@@ -638,6 +650,157 @@
                 this.connectToSelectedPort();
             }
 
+            // 自动检测并连接RM-01设备
+            async autoDetectAndConnect() {
+                try {
+                    this.connectBtn.disabled = true;
+                    this.connectBtn.textContent = '🔍 自动检测中...';
+                    this.connectBtn.classList.add('flashing');
+                    
+                    this.log('🚀 开始自动检测 RM-01 设备...', 'info');
+                    
+                    if (!navigator.serial) {
+                        throw new Error('浏览器不支持 Web Serial API');
+                    }
+
+                    // 获取已授权的串口
+                    this.availablePorts = await navigator.serial.getPorts();
+                    
+                    if (this.availablePorts.length === 0) {
+                        this.log('❌ 未发现任何串口设备', 'warning');
+                        this.log('💡 请确保：', 'info');
+                        this.log('   1. RM-01 设备已通过USB连接到电脑', 'info');
+                        this.log('   2. 设备驱动已正确安装', 'info');
+                        this.log('   3. 点击"添加串口设备"按钮授权访问', 'info');
+                        
+                        await this.showPortSelection();
+                        return;
+                    }
+
+                    this.log(`🔌 发现 ${this.availablePorts.length} 个串口设备，开始逐一检测...`, 'info');
+                    
+                    // 按优先级排序端口（ESP32相关设备优先）
+                    const sortedPorts = this.availablePorts
+                        .map((port, index) => ({ port, index, info: port.getInfo() }))
+                        .sort((a, b) => {
+                            const aIsESP32 = this.isLikelyESP32Port(a.info);
+                            const bIsESP32 = this.isLikelyESP32Port(b.info);
+                            if (aIsESP32 && !bIsESP32) return -1;
+                            if (!aIsESP32 && bIsESP32) return 1;
+                            return 0;
+                        });
+
+                    // 依次尝试每个端口
+                    for (let i = 0; i < sortedPorts.length; i++) {
+                        const { port, index, info } = sortedPorts[i];
+                        const deviceName = this.getDeviceName(info);
+                        const isESP32 = this.isLikelyESP32Port(info);
+                        
+                        this.log(`🔍 检测端口 ${i + 1}/${sortedPorts.length}: ${deviceName} ${isESP32 ? '(ESP32设备)' : ''}`, 'info');
+                        
+                        const success = await this.tryConnectToPort(port, deviceName);
+                        if (success) {
+                            this.log(`✅ 成功连接到 RM-01 设备！使用端口: ${deviceName}`, 'success');
+                            this.selectedPort = port;
+                            return;
+                        }
+                        
+                        // 如果不是最后一个端口，等待一小段时间再试下一个
+                        if (i < sortedPorts.length - 1) {
+                            await this.sleep(500);
+                        }
+                    }
+                    
+                    // 所有端口都尝试失败
+                    this.log('❌ 未能在任何串口上检测到 RM-01 设备', 'error');
+                    this.log('💡 请检查：', 'info');
+                    this.log('   1. 设备是否处于下载模式（按住BOOT键后按RESET键）', 'info');
+                    this.log('   2. USB连接是否稳定', 'info');
+                    this.log('   3. 设备驱动是否正确安装', 'info');
+                    
+                    await this.showPortSelection();
+                    
+                } catch (error) {
+                    this.log(`自动检测失败: ${error.message}`, 'error');
+                    await this.showPortSelection();
+                } finally {
+                    // 如果没有成功连接，恢复按钮状态
+                    if (!this.connected) {
+                        this.connectBtn.disabled = false;
+                        this.connectBtn.textContent = '🔌 自动连接';
+                        this.connectBtn.classList.remove('flashing');
+                        this.manualConnectBtn.disabled = false;
+                    }
+                }
+            }
+
+            // 尝试连接指定端口
+            async tryConnectToPort(port, deviceName) {
+                let transport = null;
+                let esploader = null;
+                
+                try {
+                    // 创建transport连接
+                    transport = new Transport(port);
+                    esploader = new ESPLoader({
+                        transport: transport,
+                        baudrate: 115200
+                    });
+
+                    // 设置1秒超时
+                    const connectPromise = esploader.main();
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('连接超时')), 1000);
+                    });
+
+                    // 尝试连接，1秒超时
+                    await Promise.race([connectPromise, timeoutPromise]);
+                    
+                    // 验证是否为ESP32设备
+                    const chipName = await esploader.chip.getChipDescription(esploader);
+                    if (chipName.toLowerCase().includes('esp32')) {
+                        // 成功找到ESP32设备，保存连接状态
+                        this.port = port;
+                        this.esploader = esploader;
+                        this.connected = true;
+                        
+                        // 获取设备信息
+                        const macAddr = await esploader.chip.readMac(esploader);
+                        this.updateDeviceInfo(chipName, macAddr, deviceName);
+                        this.updateUIConnected();
+                        
+                        return true;
+                    } else {
+                        this.log(`   ⚠️  设备响应但不是ESP32: ${chipName}`, 'warning');
+                        await this.cleanupConnection(transport, esploader);
+                        return false;
+                    }
+                    
+                } catch (error) {
+                    if (error.message.includes('连接超时')) {
+                        this.log(`   ⏱️  ${deviceName}: 连接超时，尝试下一个端口`, 'warning');
+                    } else {
+                        this.log(`   ❌ ${deviceName}: ${error.message}`, 'warning');
+                    }
+                    
+                    await this.cleanupConnection(transport, esploader);
+                    return false;
+                }
+            }
+
+            // 清理连接资源
+            async cleanupConnection(transport, esploader) {
+                try {
+                    if (esploader && esploader.transport) {
+                        await esploader.transport.disconnect();
+                    } else if (transport) {
+                        await transport.disconnect();
+                    }
+                } catch (error) {
+                    // 忽略清理错误
+                }
+            }
+
             // 连接到选定的串口
             async connectToSelectedPort() {
                 if (!this.selectedPort) return;
@@ -649,6 +812,41 @@
                     this.log(`连接失败: ${error.message}`, 'error');
                     this.showPortSelection();
                 }
+            }
+
+            // 更新设备信息显示
+            updateDeviceInfo(chipName, macAddr, deviceName) {
+                const macString = macAddr.map(b => b.toString(16).padStart(2, '0')).join(':').toUpperCase();
+                this.deviceInfo.innerHTML = `
+                    <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 4px solid #4CAF50;">
+                        <h4 style="margin: 0 0 8px 0; color: #2e7d32;">🎯 设备已连接</h4>
+                        <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-size: 0.9em;">
+                            <strong>芯片类型:</strong> <span>${chipName}</span>
+                            <strong>MAC地址:</strong> <span style="font-family: monospace;">${macString}</span>
+                            <strong>串口设备:</strong> <span>${deviceName}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 更新UI为已连接状态
+            updateUIConnected() {
+                this.connectBtn.textContent = '🔌 断开连接';
+                this.connectBtn.classList.remove('flashing');
+                this.connectBtn.disabled = false;
+                this.connectBtn.className = 'btn btn-warning';
+                
+                this.manualConnectBtn.textContent = '🔌 断开连接';
+                this.manualConnectBtn.disabled = false;
+                this.manualConnectBtn.style.background = '#dc3545';
+                
+                this.flashBtn.disabled = false;
+                this.eraseBtn.disabled = false;
+            }
+
+            // 睡眠函数
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
             }
 
             async connectDevice() {
@@ -704,13 +902,13 @@
                     this.flashBtn.disabled = false;
                     this.eraseBtn.disabled = false;
                     
-                    this.deviceInfo.innerHTML = `
-                        <strong>芯片:</strong> ${chipName}<br>
-                        <strong>MAC地址:</strong> ${macAddr}
-                    `;
+                    // 使用新的设备信息显示方法
+                    const selectedPortInfo = this.selectedPort.getInfo();
+                    const deviceName = this.getDeviceName(selectedPortInfo);
+                    this.updateDeviceInfo(chipName, macAddr, deviceName);
                     
                     this.log(`连接成功: ${chipName}`, 'success');
-                    this.log(`MAC地址: ${macAddr}`, 'info');
+                    this.log(`MAC地址: ${macAddr.map(b => b.toString(16).padStart(2, '0')).join(':').toUpperCase()}`, 'info');
                     
                 } catch (error) {
                     this.log(`连接失败: ${error.message}`, 'error');
@@ -730,8 +928,17 @@
                     }
                     
                     this.connected = false;
-                    this.connectBtn.textContent = '🔌 连接设备';
+                    this.selectedPort = null;
+                    
+                    // 重置两个连接按钮的状态
+                    this.connectBtn.textContent = '🔌 自动连接';
                     this.connectBtn.className = 'btn btn-primary';
+                    this.connectBtn.disabled = false;
+                    
+                    this.manualConnectBtn.textContent = '🔍 手动选择';
+                    this.manualConnectBtn.style.background = '#6c757d';
+                    this.manualConnectBtn.disabled = false;
+                    
                     this.flashBtn.disabled = true;
                     this.eraseBtn.disabled = true;
                     
