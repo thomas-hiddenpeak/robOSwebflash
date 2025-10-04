@@ -261,6 +261,54 @@
         .flashing {
             animation: pulse 2s infinite;
         }
+
+        /* 串口选择相关样式 */
+        .port-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .port-item:last-child {
+            border-bottom: none;
+        }
+
+        .port-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .port-item.selected {
+            background-color: #e7f3ff;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .port-info {
+            flex: 1;
+        }
+
+        .port-path {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .port-details {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .port-badge {
+            background: #4CAF50;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -304,6 +352,22 @@
                     <div id="progressText">准备中...</div>
                 </div>
                 
+                <!-- 串口选择区域 -->
+                <div id="portSelectionArea" style="margin-top: 15px; display: none;">
+                    <div style="margin-bottom: 15px;">
+                        <h4 style="margin-bottom: 10px; color: #333;">选择串口设备：</h4>
+                        <div id="portList" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; background: white;">
+                            <div id="portListContent" style="padding: 10px;">
+                                <div style="text-align: center; color: #666; padding: 20px;">正在扫描串口设备...</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px; display: flex; gap: 10px;">
+                            <button id="refreshPortsBtn" class="btn" style="background: #17a2b8; color: white; padding: 8px 16px;">🔄 刷新列表</button>
+                            <button id="cancelPortBtn" class="btn" style="background: #6c757d; color: white; padding: 8px 16px;">❌ 取消</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 所有按钮放在进度条下面成一行 -->
                 <div style="margin-top: 15px; display: flex; gap: 10px;">
                     <button id="connectBtn" class="btn btn-primary">🔌 连接设备</button>
@@ -352,6 +416,15 @@
                 
                 this.logContainer = document.getElementById('logContainer');
                 
+                // 串口选择相关元素
+                this.portSelectionArea = document.getElementById('portSelectionArea');
+                this.portListContent = document.getElementById('portListContent');
+                this.refreshPortsBtn = document.getElementById('refreshPortsBtn');
+                this.cancelPortBtn = document.getElementById('cancelPortBtn');
+                
+                this.selectedPort = null;
+                this.availablePorts = [];
+                
                 // Flash参数固定，无需UI元素
             }
 
@@ -359,6 +432,10 @@
                 this.connectBtn.addEventListener('click', () => this.toggleConnection());
                 this.flashBtn.addEventListener('click', () => this.flashFirmware());
                 this.eraseBtn.addEventListener('click', () => this.eraseFlash());
+                
+                // 串口选择事件
+                this.refreshPortsBtn.addEventListener('click', () => this.refreshPortList());
+                this.cancelPortBtn.addEventListener('click', () => this.hidePortSelection());
                 
                 // 自动加载固件文件
                 this.loadFirmwareFiles();
@@ -378,7 +455,140 @@
                 if (this.connected) {
                     await this.disconnectDevice();
                 } else {
+                    await this.showPortSelection();
+                }
+            }
+
+            // 显示串口选择界面
+            async showPortSelection() {
+                this.portSelectionArea.style.display = 'block';
+                this.connectBtn.disabled = true;
+                await this.refreshPortList();
+            }
+
+            // 隐藏串口选择界面
+            hidePortSelection() {
+                this.portSelectionArea.style.display = 'none';
+                this.connectBtn.disabled = false;
+                this.selectedPort = null;
+            }
+
+            // 刷新串口列表
+            async refreshPortList() {
+                try {
+                    this.portListContent.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">正在扫描串口设备...</div>';
+                    
+                    if (!navigator.serial) {
+                        throw new Error('浏览器不支持 Web Serial API');
+                    }
+
+                    // 获取已授权的串口
+                    this.availablePorts = await navigator.serial.getPorts();
+                    
+                    if (this.availablePorts.length === 0) {
+                        this.portListContent.innerHTML = `
+                            <div style="text-align: center; color: #666; padding: 20px;">
+                                <p>未发现串口设备</p>
+                                <p style="font-size: 0.9em; margin-top: 10px;">点击下面的按钮来添加新设备：</p>
+                                <button id="addPortBtn" class="btn btn-primary" style="margin-top: 10px;">➕ 添加串口设备</button>
+                            </div>
+                        `;
+                        
+                        document.getElementById('addPortBtn').addEventListener('click', async () => {
+                            try {
+                                const port = await navigator.serial.requestPort();
+                                this.availablePorts.push(port);
+                                await this.refreshPortList();
+                            } catch (error) {
+                                if (error.message.includes('No port selected')) {
+                                    this.log('用户取消了串口选择', 'warning');
+                                } else {
+                                    this.log(`添加串口设备失败: ${error.message}`, 'error');
+                                }
+                            }
+                        });
+                        
+                        return;
+                    }
+
+                    // 显示串口列表
+                    this.portListContent.innerHTML = '';
+                    
+                    for (let i = 0; i < this.availablePorts.length; i++) {
+                        const port = this.availablePorts[i];
+                        const info = port.getInfo();
+                        
+                        const portItem = document.createElement('div');
+                        portItem.className = 'port-item';
+                        portItem.dataset.portIndex = i;
+                        
+                        // 判断是否可能是ESP32设备
+                        const isESP32 = this.isLikelyESP32Port(info);
+                        
+                        portItem.innerHTML = `
+                            <div class="port-info">
+                                <div class="port-path">串口设备 #${i + 1}</div>
+                                <div class="port-details">
+                                    VID: ${info.usbVendorId ? '0x' + info.usbVendorId.toString(16).padStart(4, '0') : '未知'} | 
+                                    PID: ${info.usbProductId ? '0x' + info.usbProductId.toString(16).padStart(4, '0') : '未知'}
+                                </div>
+                            </div>
+                            ${isESP32 ? '<div class="port-badge">ESP32</div>' : ''}
+                        `;
+                        
+                        portItem.addEventListener('click', () => this.selectPort(i));
+                        this.portListContent.appendChild(portItem);
+                    }
+                    
+                } catch (error) {
+                    this.portListContent.innerHTML = `
+                        <div style="text-align: center; color: #dc3545; padding: 20px;">
+                            <p>扫描串口设备失败</p>
+                            <p style="font-size: 0.9em; margin-top: 5px;">${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+
+            // 判断是否可能是ESP32设备
+            isLikelyESP32Port(info) {
+                const knownESP32Vendors = [
+                    0x10c4, // Silicon Labs (CP210x)
+                    0x1a86, // QinHeng Electronics (CH340)
+                    0x0403, // FTDI
+                    0x067b  // Prolific
+                ];
+                
+                return info.usbVendorId && knownESP32Vendors.includes(info.usbVendorId);
+            }
+
+            // 选择串口
+            selectPort(portIndex) {
+                // 清除之前的选择
+                document.querySelectorAll('.port-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                // 选择当前项
+                const selectedItem = document.querySelector(`[data-port-index="${portIndex}"]`);
+                selectedItem.classList.add('selected');
+                
+                this.selectedPort = this.availablePorts[portIndex];
+                
+                // 立即连接选定的串口
+                this.connectToSelectedPort();
+            }
+
+            // 连接到选定的串口
+            async connectToSelectedPort() {
+                if (!this.selectedPort) return;
+                
+                try {
+                    this.hidePortSelection();
                     await this.connectDevice();
+                } catch (error) {
+                    this.log(`连接失败: ${error.message}`, 'error');
+                    this.showPortSelection();
                 }
             }
 
@@ -411,7 +621,11 @@
                         throw new Error(errorMsg);
                     }
 
-                    this.port = await navigator.serial.requestPort();
+                    if (!this.selectedPort) {
+                        throw new Error('请先选择串口设备');
+                    }
+
+                    this.port = this.selectedPort;
                     const transport = new Transport(this.port);
                     this.esploader = new ESPLoader({
                         transport: transport,
