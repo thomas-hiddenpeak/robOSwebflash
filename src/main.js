@@ -98,12 +98,32 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      webSecurity: true,  // 保持 web 安全性
+      webSecurity: false,  // 需要禁用以支持 Web Serial API
       experimentalFeatures: true,  // 启用实验性功能包括 Web Serial API
       preload: path.join(__dirname, 'preload.js')
     },
     titleBarStyle: 'default',
     show: false
+  });
+
+  // 处理权限请求 - 这是关键！
+  mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+    console.log('Permission request:', permission);
+    if (permission === 'serial') {
+      // 自动允许串口权限
+      callback(true);
+    } else {
+      callback(false);
+    }
+  });
+
+  // 处理权限检查
+  mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+    console.log('Permission check:', permission, requestingOrigin);
+    if (permission === 'serial') {
+      return true;
+    }
+    return false;
   });
 
   // 通过本地服务器加载应用
@@ -125,9 +145,14 @@ function createWindow() {
   }
 }
 
-// 启用 Web Serial API 支持
+// 启用 Web Serial API 支持 - 需要这些关键的命令行开关
 app.commandLine.appendSwitch('enable-experimental-web-platform-features');
 app.commandLine.appendSwitch('enable-web-serial');
+app.commandLine.appendSwitch('enable-serial-chooser');
+app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors'); // 禁用某些CORS限制
+
+// 设置用户代理以避免某些检测
+app.setName('RM-01 robOS Flasher');
 
 // Electron初始化完成后启动服务器和创建窗口
 app.whenReady().then(async () => {
