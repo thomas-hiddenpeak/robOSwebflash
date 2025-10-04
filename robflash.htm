@@ -369,11 +369,11 @@
                 </div>
 
                 <!-- 所有按钮放在进度条下面成一行 -->
-                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button id="connectBtn" class="btn btn-primary">🔌 自动连接</button>
-                    <button id="manualConnectBtn" class="btn" style="background: #6c757d; color: white;">🔍 手动选择</button>
-                    <button id="flashBtn" class="btn btn-primary" disabled>🔥 烧录固件</button>
-                    <button id="eraseBtn" class="btn btn-danger" disabled>🗑️ 擦除Flash</button>
+                <div style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button id="connectBtn" class="btn btn-primary" style="padding: 8px 12px; font-size: 0.9em;">🔌 自动连接</button>
+                    <button id="manualConnectBtn" class="btn" style="background: #6c757d; color: white; padding: 8px 12px; font-size: 0.9em;">🔍 手动选择</button>
+                    <button id="flashBtn" class="btn btn-primary" style="padding: 8px 12px; font-size: 0.9em;" disabled>🔥 烧录固件</button>
+                    <button id="eraseBtn" class="btn btn-danger" style="padding: 8px 12px; font-size: 0.9em;" disabled>🗑️ 擦除Flash</button>
                 </div>
             </div>
         </div>
@@ -747,13 +747,13 @@
                         baudrate: 115200
                     });
 
-                    // 设置1秒超时
+                    // 设置3秒超时
                     const connectPromise = esploader.main();
                     const timeoutPromise = new Promise((_, reject) => {
-                        setTimeout(() => reject(new Error('连接超时')), 1000);
+                        setTimeout(() => reject(new Error('连接超时')), 3000);
                     });
 
-                    // 尝试连接，1秒超时
+                    // 尝试连接，3秒超时
                     await Promise.race([connectPromise, timeoutPromise]);
                     
                     // 验证是否为ESP32设备
@@ -778,7 +778,7 @@
                     
                 } catch (error) {
                     if (error.message.includes('连接超时')) {
-                        this.log(`   ⏱️  ${deviceName}: 连接超时，尝试下一个端口`, 'warning');
+                        this.log(`   ⏱️  ${deviceName}: 连接超时（3秒），尝试下一个端口`, 'warning');
                     } else {
                         this.log(`   ❌ ${deviceName}: ${error.message}`, 'warning');
                     }
@@ -816,7 +816,10 @@
 
             // 更新设备信息显示
             updateDeviceInfo(chipName, macAddr, deviceName) {
-                const macString = macAddr.map(b => b.toString(16).padStart(2, '0')).join(':').toUpperCase();
+                // 修复macAddr格式化 - 确保macAddr是数组
+                const macString = Array.isArray(macAddr) 
+                    ? macAddr.map(b => b.toString(16).padStart(2, '0')).join(':').toUpperCase()
+                    : macAddr.toString();
                 this.deviceInfo.innerHTML = `
                     <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 4px solid #4CAF50;">
                         <h4 style="margin: 0 0 8px 0; color: #2e7d32;">🎯 设备已连接</h4>
@@ -908,7 +911,11 @@
                     this.updateDeviceInfo(chipName, macAddr, deviceName);
                     
                     this.log(`连接成功: ${chipName}`, 'success');
-                    this.log(`MAC地址: ${macAddr.map(b => b.toString(16).padStart(2, '0')).join(':').toUpperCase()}`, 'info');
+                    // 修复macAddr格式化 - 确保macAddr是数组
+                    const macString = Array.isArray(macAddr) 
+                        ? macAddr.map(b => b.toString(16).padStart(2, '0')).join(':').toUpperCase()
+                        : macAddr.toString();
+                    this.log(`MAC地址: ${macString}`, 'info');
                     
                 } catch (error) {
                     this.log(`连接失败: ${error.message}`, 'error');
