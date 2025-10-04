@@ -13,9 +13,12 @@ function createWindow() {
     minWidth: 800,
     minHeight: 600,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      enableRemoteModule: false
+      nodeIntegration: false,
+      contextIsolation: true,
+      enableRemoteModule: false,
+      webSecurity: false,  // 允许访问本地文件和Web APIs
+      experimentalFeatures: true,  // 启用实验性功能
+      preload: path.join(__dirname, 'preload.js')
     },
     titleBarStyle: 'default',
     show: false
@@ -39,6 +42,10 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   }
 }
+
+// 启用 Web Serial API 支持
+app.commandLine.appendSwitch('enable-experimental-web-platform-features');
+app.commandLine.appendSwitch('enable-web-serial');
 
 // Electron初始化完成后创建窗口
 app.whenReady().then(createWindow);
