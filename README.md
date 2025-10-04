@@ -20,7 +20,27 @@
 - **Edge 89+**
 - **Chrome for Android 61+** (通过 web-serial-polyfill)
 
-## 🚀 使用方法
+## � 下载
+
+### 桌面版本（推荐）
+如果您遇到浏览器兼容性问题，可以下载跨平台桌面版本：
+
+- **Windows**: 
+  - `RM-01.robOS.Flasher.Setup.1.0.0.exe` (安装版)
+  - `RM-01.robOS.Flasher.exe` (便携版)
+- **macOS**: 
+  - `RM-01.robOS.Flasher-1.0.0-arm64.dmg` (Apple Silicon)
+  - `RM-01.robOS.Flasher-1.0.0.dmg` (Intel)
+- **Linux**:
+  - `RM-01.robOS.Flasher-1.0.0.AppImage` (AppImage)
+  - `rm01-robos-flasher_1.0.0_amd64.deb` (Debian包)
+
+📥 [从 GitHub Releases 下载最新版本](https://github.com/thomas-hiddenpeak/robOSwebflash/releases/latest)
+
+### macOS 安装注意事项
+macOS 用户首次运行可能提示"应用已损坏"，这是正常现象。请参阅 [macOS 安装指南](MACOS_INSTALL.md) 解决此问题。
+
+## �🚀 使用方法
 
 ### 1. 准备固件文件
 
