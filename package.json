@@ -1,0 +1,109 @@
+{
+  "name": "rm01-robos-flasher",
+  "version": "1.0.0",
+  "description": "RM-01 robOS 固件烧录器 - 跨平台桌面应用",
+  "main": "src/main.js",
+  "homepage": "https://github.com/thomas-hiddenpeak/robOSwebflash",
+  "author": {
+    "name": "thomas-hiddenpeak",
+    "email": "thomas@hiddenpeak.com"
+  },
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac", 
+    "build:linux": "electron-builder --linux",
+    "dist": "npm run build",
+    "prepare": "mkdir -p src"
+  },
+  "keywords": [
+    "ESP32",
+    "ESP32-S3", 
+    "firmware",
+    "flasher",
+    "robOS",
+    "RM-01",
+    "serial",
+    "embedded"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomas-hiddenpeak/robOSwebflash.git"
+  },
+  "devDependencies": {
+    "electron": "^26.0.0",
+    "electron-builder": "^24.6.3"
+  },
+  "dependencies": {
+    "serialport": "^12.0.0"
+  },
+  "build": {
+    "appId": "com.hiddenpeak.rm01-flasher",
+    "productName": "RM-01 robOS Flasher",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/**/*",
+      "robflash.htm",
+      "esptool-complete.js", 
+      "fw/**/*",
+      "!**/*.md",
+      "!.github",
+      "!assets/source"
+    ],
+    "extraResources": [
+      {
+        "from": "fw",
+        "to": "fw"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64", "x64"]
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        }
+      ],
+      "category": "Development"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "publish": {
+      "provider": "github",
+      "releaseType": "release"
+    }
+  }
+}
