@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RM-01 固件烧录器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 25px;
+            border: 2px solid #f0f0f0;
+            border-radius: 15px;
+            background: #fafafa;
+        }
+
+        .section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .file-input-group {
+            margin-bottom: 20px;
+        }
+
+        .file-input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .file-input-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input:hover {
+            border-color: #4CAF50;
+            background: #f8fff8;
+        }
+
+        .file-status {
+            margin-top: 8px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .file-selected {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(90deg, #ffc107, #e0a800);
+            color: #212529;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(90deg, #e0a800, #d39e00);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(90deg, #dc3545, #c82333);
+            color: white;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+            margin-right: 10px;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(90deg, #c82333, #bd2130);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(90deg, #28a745, #218838);
+            color: white;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(90deg, #218838, #1e7e34);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc !important;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            color: #666 !important;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .log-container {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .error {
+            color: #ff4444;
+        }
+
+        .success {
+            color: #44ff44;
+        }
+
+        .warning {
+            color: #ffaa44;
+        }
+
+        .flash-settings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .setting-group label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .setting-group select {
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background: white;
+        }
+
+        .setting-group select:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .flashing {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 RM-01 固件烧录器</h1>
+            <p>ESP32-S3 固件烧录工具</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- 设备连接与烧录 -->
+            <div class="section" style="display: none;">
+                <h3>� RM-01 固件烧录</h3>
+                
+
+                
+                <!-- 设备信息 -->
+                <div id="deviceInfo" style="margin-bottom: 20px; color: #666;"></div>
+                
+                <!-- 隐藏的状态元素，用于后台检查 -->
+                <div style="display: none;">
+                    <div id="firmwareStatus"></div>
+                    <div id="bootloaderStatus"></div>
+                    <div id="partitionStatus"></div>
+                    <div id="applicationStatus"></div>
+                </div>
+            </div>
+
+            <!-- 日志输出 -->
+            <div class="section">
+                <h3>📋 操作日志</h3>
+                <div class="log-container" id="logContainer">
+                    <div class="log-entry">等待连接设备...</div>
+                </div>
+                
+                <!-- 进度条放在日志框下面 -->
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div id="progressText">准备中...</div>
+                </div>
+                
+                <!-- 所有按钮放在进度条下面成一行 -->
+                <div style="margin-top: 15px; display: flex; gap: 10px;">
+                    <button id="connectBtn" class="btn btn-primary">🔌 连接设备</button>
+                    <button id="flashBtn" class="btn btn-primary" disabled>🔥 烧录固件</button>
+                    <button id="eraseBtn" class="btn btn-danger" disabled>🗑️ 擦除Flash</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ES6 模块方式加载 esptool-js -->
+    <script type="module">
+        import { ESPLoader, Transport } from './esptool-complete.js';
+
+        class RM01Flasher {
+            constructor() {
+                this.esploader = null;
+                this.port = null;
+                this.connected = false;
+                this.files = {
+                    bootloader: null,
+                    partition: null,
+                    application: null
+                };
+                
+                this.initializeElements();
+                this.attachEventListeners();
+            }
+
+            initializeElements() {
+                this.connectBtn = document.getElementById('connectBtn');
+                this.deviceInfo = document.getElementById('deviceInfo');
+                
+                this.firmwareStatus = document.getElementById('firmwareStatus');
+                
+                this.bootloaderStatus = document.getElementById('bootloaderStatus');
+                this.partitionStatus = document.getElementById('partitionStatus');
+                this.applicationStatus = document.getElementById('applicationStatus');
+                
+                this.flashBtn = document.getElementById('flashBtn');
+                this.eraseBtn = document.getElementById('eraseBtn');
+                
+                this.progressContainer = document.getElementById('progressContainer');
+                this.progressFill = document.getElementById('progressFill');
+                this.progressText = document.getElementById('progressText');
+                
+                this.logContainer = document.getElementById('logContainer');
+                
+                // Flash参数固定，无需UI元素
+            }
+
+            attachEventListeners() {
+                this.connectBtn.addEventListener('click', () => this.toggleConnection());
+                this.flashBtn.addEventListener('click', () => this.flashFirmware());
+                this.eraseBtn.addEventListener('click', () => this.eraseFlash());
+                
+                // 自动加载固件文件
+                this.loadFirmwareFiles();
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry ${type}`;
+                logEntry.textContent = `[${timestamp}] ${message}`;
+                
+                this.logContainer.appendChild(logEntry);
+                this.logContainer.scrollTop = this.logContainer.scrollHeight;
+            }
+
+            async toggleConnection() {
+                if (this.connected) {
+                    await this.disconnectDevice();
+                } else {
+                    await this.connectDevice();
+                }
+            }
+
+            async connectDevice() {
+                try {
+                    // 设置连接中的UI状态
+                    this.connectBtn.disabled = true;
+                    this.connectBtn.textContent = '🔄 连接中...';
+                    this.connectBtn.classList.add('flashing');
+                    
+                    this.log('正在连接设备...', 'info');
+                    
+                    if (!navigator.serial) {
+                        throw new Error('浏览器不支持 Web Serial API，请使用 Chrome/Edge 浏览器');
+                    }
+
+                    this.port = await navigator.serial.requestPort();
+                    const transport = new Transport(this.port);
+                    this.esploader = new ESPLoader({
+                        transport: transport,
+                        baudrate: 115200
+                    });
+
+                    await this.esploader.main();
+                    
+                    const chipName = await this.esploader.chip.getChipDescription(this.esploader);
+                    const macAddr = await this.esploader.chip.readMac(this.esploader);
+                    
+                    this.connected = true;
+                    this.connectBtn.disabled = false;
+                    this.connectBtn.textContent = '⚠️ 断开连接';
+                    this.connectBtn.className = 'btn btn-warning';
+                    this.connectBtn.classList.remove('flashing');
+                    this.flashBtn.disabled = false;
+                    this.eraseBtn.disabled = false;
+                    
+                    this.deviceInfo.innerHTML = `
+                        <strong>芯片:</strong> ${chipName}<br>
+                        <strong>MAC地址:</strong> ${macAddr}
+                    `;
+                    
+                    this.log(`连接成功: ${chipName}`, 'success');
+                    this.log(`MAC地址: ${macAddr}`, 'info');
+                    
+                } catch (error) {
+                    this.log(`连接失败: ${error.message}`, 'error');
+                    
+                    // 恢复按钮状态
+                    this.connectBtn.disabled = false;
+                    this.connectBtn.textContent = '🔌 连接设备';
+                    this.connectBtn.className = 'btn btn-primary';
+                    this.connectBtn.classList.remove('flashing');
+                }
+            }
+
+            async disconnectDevice() {
+                try {
+                    if (this.esploader) {
+                        await this.esploader.transport.disconnect();
+                    }
+                    
+                    this.connected = false;
+                    this.connectBtn.textContent = '🔌 连接设备';
+                    this.connectBtn.className = 'btn btn-primary';
+                    this.flashBtn.disabled = true;
+                    this.eraseBtn.disabled = true;
+                    
+                    this.deviceInfo.innerHTML = '';
+                    this.log('设备已断开连接', 'info');
+                    
+                } catch (error) {
+                    this.log(`断开连接时出错: ${error.message}`, 'error');
+                }
+            }
+
+            async loadFirmwareFiles() {
+                try {
+                    this.log('正在从fw文件夹加载固件文件...', 'info');
+                    
+                    // 固件文件路径
+                    const firmwareFiles = [
+                        { type: 'bootloader', path: './fw/bootloader.bin', status: this.bootloaderStatus },
+                        { type: 'partition', path: './fw/partition-table.bin', status: this.partitionStatus },
+                        { type: 'application', path: './fw/robOS.bin', status: this.applicationStatus }
+                    ];
+                    
+                    let loadedCount = 0;
+                    
+                    for (const fw of firmwareFiles) {
+                        try {
+                            const response = await fetch(fw.path);
+                            if (response.ok) {
+                                const arrayBuffer = await response.arrayBuffer();
+                                this.files[fw.type] = {
+                                    name: fw.path.split('/').pop(),
+                                    size: arrayBuffer.byteLength,
+                                    data: arrayBuffer
+                                };
+                                fw.status.textContent = `✓ ${fw.path.split('/').pop()} (${(arrayBuffer.byteLength / 1024).toFixed(1)} KB)`;
+                                fw.status.className = 'file-status file-selected';
+                                loadedCount++;
+                                this.log(`已加载: ${fw.path.split('/').pop()}`, 'success');
+                            } else {
+                                fw.status.textContent = `✗ ${fw.path.split('/').pop()} - 加载失败`;
+                                fw.status.className = 'file-status error';
+                                this.log(`加载失败: ${fw.path}`, 'error');
+                            }
+                        } catch (error) {
+                            fw.status.textContent = `✗ ${fw.path.split('/').pop()} - 文件不存在`;
+                            fw.status.className = 'file-status error';
+                            this.log(`文件不存在: ${fw.path}`, 'error');
+                        }
+                    }
+                    
+                    if (loadedCount === 3) {
+                        this.firmwareStatus.textContent = '✓ 所有固件文件加载完成，可以开始烧录';
+                        this.firmwareStatus.style.color = '#2d5a2d';
+                        this.log('所有固件文件加载完成！', 'success');
+                    } else {
+                        this.firmwareStatus.textContent = `⚠ 只加载了 ${loadedCount}/3 个文件，请检查fw文件夹`;
+                        this.firmwareStatus.style.color = '#d4691a';
+                    }
+                    
+                    this.updateFlashButtonState();
+                    
+                } catch (error) {
+                    this.log(`加载固件文件时出错: ${error.message}`, 'error');
+                    this.firmwareStatus.textContent = '✗ 固件文件加载失败';
+                    this.firmwareStatus.style.color = '#d32f2f';
+                }
+            }
+
+            updateFlashButtonState() {
+                const hasAllFiles = this.files.bootloader && this.files.partition && this.files.application;
+                this.flashBtn.disabled = !this.connected || !hasAllFiles;
+            }
+
+            async readFileAsArrayBuffer(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            updateProgress(current, total, message = '') {
+                const percent = Math.round((current / total) * 100);
+                this.progressFill.style.width = `${percent}%`;
+                this.progressText.textContent = message || `${percent}% (${current}/${total})`;
+            }
+
+            async flashFirmware() {
+                if (!this.connected || !this.files.bootloader || !this.files.partition || !this.files.application) {
+                    this.log('请先连接设备，固件文件会从fw文件夹自动加载', 'error');
+                    return;
+                }
+
+                try {
+                    this.flashBtn.disabled = true;
+                    this.progressContainer.style.display = 'block';
+                    this.flashBtn.classList.add('flashing');
+                    
+                    this.log('开始烧录固件...', 'info');
+                    
+                    // 获取文件数据（已经是ArrayBuffer格式）
+                    this.log('正在准备文件数据...', 'info');
+                    const bootloaderData = this.files.bootloader.data;
+                    const partitionData = this.files.partition.data;
+                    const applicationData = this.files.application.data;
+                    
+                    // 转换ArrayBuffer为字符串（esptool-js需要的格式）
+                    const arrayBufferToString = (buffer) => {
+                        const bytes = new Uint8Array(buffer);
+                        let binary = '';
+                        for (let i = 0; i < bytes.byteLength; i++) {
+                            binary += String.fromCharCode(bytes[i]);
+                        }
+                        return binary;
+                    };
+
+                    // 准备文件数组
+                    const fileArray = [
+                        {
+                            data: arrayBufferToString(bootloaderData),
+                            address: 0x0
+                        },
+                        {
+                            data: arrayBufferToString(partitionData),
+                            address: 0x8000
+                        },
+                        {
+                            data: arrayBufferToString(applicationData),
+                            address: 0x10000
+                        }
+                    ];
+
+                    this.log(`Bootloader: ${this.files.bootloader.name} (${fileArray[0].data.length} bytes)`, 'info');
+                    this.log(`分区表: ${this.files.partition.name} (${fileArray[1].data.length} bytes)`, 'info');
+                    this.log(`应用程序: ${this.files.application.name} (${fileArray[2].data.length} bytes)`, 'info');
+                    
+                    // 烧录参数 - 固定优化参数
+                    const flashOptions = {
+                        fileArray: fileArray,
+                        flashSize: '16MB',
+                        flashMode: 'dio',
+                        flashFreq: '80m',
+                        eraseAll: false,
+                        compress: true,
+                        reportProgress: (fileIndex, written, total) => {
+                            const fileName = ['Bootloader', '分区表', '应用程序'][fileIndex];
+                            this.log(`烧录进度 - ${fileName}: ${written}/${total} bytes (${Math.round((written/total)*100)}%)`, 'info');
+                            this.updateProgress(written, total, `烧录 ${fileName}: ${Math.round((written/total)*100)}%`);
+                        },
+                        calculateMD5Hash: null
+                    };
+                    
+                    this.log('烧录设置: 16MB, DIO, 80MHz (优化参数)', 'info');
+                    
+                    // 开始烧录
+                    this.log('开始执行writeFlash...', 'info');
+                    
+                    // 手动更新UI进度，因为esptool内部不会调用我们的回调
+                    let currentFile = 0;
+                    const totalFiles = fileArray.length;
+                    
+                    // 模拟进度更新
+                    const progressInterval = setInterval(() => {
+                        if (currentFile < totalFiles) {
+                            const fileName = ['Bootloader', '分区表', '应用程序'][currentFile];
+                            this.updateProgress(currentFile + 1, totalFiles, `正在烧录 ${fileName}...`);
+                            currentFile++;
+                        }
+                    }, 2000);
+                    
+                    const result = await this.esploader.writeFlash(flashOptions);
+                    clearInterval(progressInterval);
+                    
+                    this.log('esptool-js烧录完成，请查看控制台确认详细进度', 'info');
+                    
+                    this.updateProgress(100, 100, '烧录完成!');
+                    this.log('固件烧录完成!', 'success');
+                    
+                    // 验证烧录
+                    this.log('正在验证烧录结果...', 'info');
+                    try {
+                        const flashId = await this.esploader.flashId();
+                        this.log(`Flash ID验证成功`, 'success');
+                    } catch (verifyError) {
+                        this.log(`验证失败: ${verifyError.message}`, 'warning');
+                    }
+                    
+                    // 重启设备
+                    this.log('正在重启设备以运行新固件...', 'info');
+                    try {
+                        await this.esploader.hardReset();
+                        this.log('设备重启成功！新固件已开始运行。', 'success');
+                        
+                        // 设备重启后自动断开连接状态
+                        this.connected = false;
+                        this.connectBtn.textContent = '🔌 连接设备';
+                        this.connectBtn.className = 'btn btn-primary';
+                        this.flashBtn.disabled = true;
+                        this.eraseBtn.disabled = true;
+                        this.deviceInfo.innerHTML = '';
+                        this.log('设备已重启，连接状态已重置', 'info');
+                        
+                    } catch (resetError) {
+                        this.log(`重启失败: ${resetError.message}，请手动按设备复位按钮`, 'warning');
+                        
+                        // 即使重启失败，也认为连接已断开
+                        this.connected = false;
+                        this.connectBtn.textContent = '🔌 连接设备';
+                        this.connectBtn.className = 'btn btn-primary';
+                        this.flashBtn.disabled = true;
+                        this.eraseBtn.disabled = true;
+                        this.deviceInfo.innerHTML = '';
+                        this.log('连接状态已重置，请重新连接设备', 'info');
+                    }
+                    
+                } catch (error) {
+                    this.log(`烧录失败: ${error.message}`, 'error');
+                    console.error('Flash error:', error);
+                } finally {
+                    // 只有在设备仍然连接时才启用烧录按钮
+                    if (this.connected) {
+                        this.flashBtn.disabled = false;
+                    }
+                    this.flashBtn.classList.remove('flashing');
+                    
+                    setTimeout(() => {
+                        this.progressContainer.style.display = 'none';
+                        this.updateProgress(0, 100, '');
+                    }, 3000);
+                }
+            }
+
+            async eraseFlash() {
+                if (!this.connected) {
+                    this.log('请先连接设备', 'error');
+                    return;
+                }
+
+                try {
+                    this.eraseBtn.disabled = true;
+                    this.log('正在擦除Flash...', 'warning');
+                    
+                    await this.esploader.eraseFlash();
+                    
+                    this.log('Flash擦除完成', 'success');
+                    
+                } catch (error) {
+                    this.log(`擦除失败: ${error.message}`, 'error');
+                } finally {
+                    this.eraseBtn.disabled = false;
+                }
+            }
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new RM01Flasher();
+        });
+    </script>
+</body>
+</html>
