@@ -475,6 +475,8 @@
             async showPortSelection() {
                 this.portSelectionArea.style.display = 'block';
                 this.connectBtn.disabled = true;
+                // 自动连接失败时，确保手动连接按钮可见
+                this.manualConnectBtn.style.display = 'inline-block';
                 await this.refreshPortList();
             }
 
@@ -730,6 +732,8 @@
                         this.connectBtn.textContent = '🔌 自动连接';
                         this.connectBtn.classList.remove('flashing');
                         this.manualConnectBtn.disabled = false;
+                        // 自动连接失败时显示手动连接按钮
+                        this.manualConnectBtn.style.display = 'inline-block';
                     }
                 }
             }
@@ -839,9 +843,8 @@
                 this.connectBtn.disabled = false;
                 this.connectBtn.className = 'btn btn-warning';
                 
-                this.manualConnectBtn.textContent = '🔌 断开连接';
-                this.manualConnectBtn.disabled = false;
-                this.manualConnectBtn.style.background = '#dc3545';
+                // 连接成功后隐藏手动连接按钮
+                this.manualConnectBtn.style.display = 'none';
                 
                 this.flashBtn.disabled = false;
                 this.eraseBtn.disabled = false;
@@ -945,6 +948,7 @@
                     this.manualConnectBtn.textContent = '🔍 手动选择';
                     this.manualConnectBtn.style.background = '#6c757d';
                     this.manualConnectBtn.disabled = false;
+                    this.manualConnectBtn.style.display = 'inline-block'; // 重新显示手动按钮
                     
                     this.flashBtn.disabled = true;
                     this.eraseBtn.disabled = true;
