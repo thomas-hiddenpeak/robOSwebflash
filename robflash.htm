@@ -435,7 +435,7 @@
                 
                 // 串口选择事件
                 this.refreshPortsBtn.addEventListener('click', () => this.refreshPortList());
-                this.cancelPortBtn.addEventListener('click', () => this.hidePortSelection());
+                this.cancelPortBtn.addEventListener('click', () => this.hidePortSelection(true));
                 
                 // 自动加载固件文件
                 this.loadFirmwareFiles();
@@ -467,10 +467,12 @@
             }
 
             // 隐藏串口选择界面
-            hidePortSelection() {
+            hidePortSelection(clearSelection = false) {
                 this.portSelectionArea.style.display = 'none';
                 this.connectBtn.disabled = false;
-                this.selectedPort = null;
+                if (clearSelection) {
+                    this.selectedPort = null;
+                }
             }
 
             // 刷新串口列表
@@ -522,15 +524,16 @@
                         portItem.className = 'port-item';
                         portItem.dataset.portIndex = i;
                         
-                        // 判断是否可能是ESP32设备
+                        // 判断是否可能是ESP32设备和获取设备描述
                         const isESP32 = this.isLikelyESP32Port(info);
+                        const deviceName = this.getDeviceName(info);
+                        const deviceDescription = this.getDeviceDescription(info);
                         
                         portItem.innerHTML = `
                             <div class="port-info">
-                                <div class="port-path">串口设备 #${i + 1}</div>
+                                <div class="port-path">${deviceName}</div>
                                 <div class="port-details">
-                                    VID: ${info.usbVendorId ? '0x' + info.usbVendorId.toString(16).padStart(4, '0') : '未知'} | 
-                                    PID: ${info.usbProductId ? '0x' + info.usbProductId.toString(16).padStart(4, '0') : '未知'}
+                                    ${deviceDescription}
                                 </div>
                             </div>
                             ${isESP32 ? '<div class="port-badge">ESP32</div>' : ''}
@@ -560,6 +563,62 @@
                 ];
                 
                 return info.usbVendorId && knownESP32Vendors.includes(info.usbVendorId);
+            }
+
+            // 获取设备名称
+            getDeviceName(info) {
+                const vendorNames = {
+                    0x10c4: 'Silicon Labs CP210x USB to UART Bridge',
+                    0x1a86: 'QinHeng CH340 USB Serial',
+                    0x0403: 'FTDI USB Serial Device',
+                    0x067b: 'Prolific USB-to-Serial Comm Port',
+                    0x2341: 'Arduino Device',
+                    0x1b4f: 'SparkFun Device'
+                };
+
+                if (info.usbVendorId && vendorNames[info.usbVendorId]) {
+                    return vendorNames[info.usbVendorId];
+                }
+
+                if (info.usbVendorId) {
+                    return `USB Serial Device (VID: 0x${info.usbVendorId.toString(16).padStart(4, '0')})`;
+                }
+
+                return 'Serial Device';
+            }
+
+            // 获取设备详细描述
+            getDeviceDescription(info) {
+                const parts = [];
+                
+                if (info.usbVendorId) {
+                    parts.push(`VID: 0x${info.usbVendorId.toString(16).padStart(4, '0')}`);
+                }
+                
+                if (info.usbProductId) {
+                    parts.push(`PID: 0x${info.usbProductId.toString(16).padStart(4, '0')}`);
+                }
+
+                // 添加常见芯片的产品描述
+                const productDescriptions = {
+                    0x10c4: {
+                        0xea60: 'CP2102/CP2109 USB to UART Bridge Controller'
+                    },
+                    0x1a86: {
+                        0x7523: 'CH340 USB-to-Serial converter',
+                        0x55d4: 'CH341 USB-to-Serial converter'
+                    },
+                    0x0403: {
+                        0x6001: 'FT232R USB UART',
+                        0x6014: 'FT232H Single HS USB-UART/FIFO IC'
+                    }
+                };
+
+                if (info.usbVendorId && info.usbProductId && productDescriptions[info.usbVendorId] && productDescriptions[info.usbVendorId][info.usbProductId]) {
+                    parts.push(productDescriptions[info.usbVendorId][info.usbProductId]);
+                }
+
+                return parts.length > 0 ? parts.join(' | ') : '串口设备';
             }
 
             // 选择串口
