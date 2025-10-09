@@ -1,0 +1,20 @@
+🔍 Firmware Analysis Report
+==========================
+Build Date: 2025-10-05 19:11:04 UTC
+Git Commit: 1d0fd11e4c96671fcd65eec76f977edece34f85a
+
+📁 File Sizes:
+robOS.bin                    1119808 bytes
+robOS.elf                   11631328 bytes
+
+📊 Binary Analysis:
+Application size: 1119808 bytes (1093 KB)
+⚠️  Size is moderate (1-2MB)
+
+⚡ Flash Layout:
+--flash_mode dio --flash_freq 80m --flash_size 16MB
+0x0 bootloader/bootloader.bin
+0x10000 robOS.bin
+0x8000 partition_table/partition-table.bin
+
+✅ Quality analysis complete

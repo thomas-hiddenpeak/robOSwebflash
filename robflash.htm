@@ -967,9 +967,9 @@
                     
                     // 固件文件路径
                     const firmwareFiles = [
-                        { type: 'bootloader', path: './fw/bootloader.bin', status: this.bootloaderStatus },
-                        { type: 'partition', path: './fw/partition-table.bin', status: this.partitionStatus },
-                        { type: 'application', path: './fw/robOS.bin', status: this.applicationStatus }
+                        { type: 'bootloader', path: './fw/build/bootloader/bootloader.bin', status: this.bootloaderStatus },
+                        { type: 'partition', path: './fw/build/partition_table/partition-table.bin', status: this.partitionStatus },
+                        { type: 'application', path: './fw/build/robOS.bin', status: this.applicationStatus }
                     ];
                     
                     let loadedCount = 0;

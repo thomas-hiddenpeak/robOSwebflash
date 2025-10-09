@@ -1,0 +1,24 @@
+Build Information:
+==================
+Project: robOS
+Target: ESP32S3
+ESP-IDF Version: v5.5.1
+Build Date: 2025-10-05 19:11:04 UTC
+Git Commit: 1d0fd11e4c96671fcd65eec76f977edece34f85a
+Git Branch: v1.1.0
+Build Number: 25
+
+Flash Command:
+esptool.py --chip esp32s3 --port /dev/ttyUSB0 --baud 460800 write_flash @flash_args
+
+Files in this build:
+===================
+robOS.bin                    1119808 bytes
+robOS.elf                   11631328 bytes
+
+Flash Layout:
+=============
+--flash_mode dio --flash_freq 80m --flash_size 16MB
+0x0 bootloader/bootloader.bin
+0x10000 robOS.bin
+0x8000 partition_table/partition-table.bin
