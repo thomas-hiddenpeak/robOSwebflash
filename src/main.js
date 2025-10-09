@@ -94,6 +94,7 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    icon: path.join(__dirname, '..', 'favicon_io', 'android-chrome-512x512.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

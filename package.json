@@ -50,10 +50,12 @@
       "robflash.htm",
       "esptool-complete.js", 
       "fw/**/*",
+      "favicon_io/**/*",
       "!**/*.md",
       "!.github",
       "!assets/source"
     ],
+    "icon": "./favicon_io/android-chrome-512x512.png",
     "extraResources": [
       {
         "from": "fw",
@@ -61,6 +63,7 @@
       }
     ],
     "mac": {
+      "icon": "./favicon_io/android-chrome-512x512.png",
       "category": "public.app-category.developer-tools",
       "target": [
         {
@@ -75,6 +78,7 @@
       "entitlementsInherit": null
     },
     "win": {
+      "icon": "./favicon_io/favicon.ico",
       "target": [
         {
           "target": "nsis",
@@ -87,6 +91,7 @@
       ]
     },
     "linux": {
+      "icon": "./favicon_io/android-chrome-512x512.png",
       "target": [
         {
           "target": "AppImage",
