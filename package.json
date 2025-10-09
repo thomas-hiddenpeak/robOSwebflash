@@ -78,7 +78,7 @@
       "entitlementsInherit": null
     },
     "win": {
-      "icon": "favicon_io/favicon.ico",
+      "icon": "favicon_io/android-chrome-256x256.png",
       "target": [
         {
           "target": "nsis",
