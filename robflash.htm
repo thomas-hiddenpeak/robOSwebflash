@@ -760,13 +760,13 @@
                         baudrate: 115200
                     });
 
-                    // 设置3秒超时
+                    // 设置5秒超时
                     const connectPromise = esploader.main();
                     const timeoutPromise = new Promise((_, reject) => {
-                        setTimeout(() => reject(new Error('连接超时')), 3000);
+                        setTimeout(() => reject(new Error('连接超时')), 5000);
                     });
 
-                    // 尝试连接，3秒超时
+                    // 尝试连接，5秒超时
                     await Promise.race([connectPromise, timeoutPromise]);
                     
                     // 验证是否为ESP32设备
@@ -791,7 +791,7 @@
                     
                 } catch (error) {
                     if (error.message.includes('连接超时')) {
-                        this.log(`   ⏱️  ${deviceName}: 连接超时（3秒），尝试下一个端口`, 'warning');
+                        this.log(`   ⏱️  ${deviceName}: 连接超时（5秒），尝试下一个端口`, 'warning');
                     } else {
                         this.log(`   ❌ ${deviceName}: ${error.message}`, 'warning');
                     }
